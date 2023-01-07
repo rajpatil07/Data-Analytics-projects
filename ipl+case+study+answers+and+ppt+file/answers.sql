@@ -1,0 +1,164 @@
+use ipl;
+select * from ipl_bidder_details;
+select * from ipl_bidder_points;
+select * from ipl_bidding_details;
+select * from ipl_match;
+select * from ipl_match_schedule;
+select * from ipl_player;
+select * from ipl_stadium;
+select * from ipl_team;
+select * from ipl_team_players;
+select * from ipl_team_standings;
+select * from ipl_tournament;
+select * from ipl_user;
+# 1.Show the percentage of wins of each bidder in the order of highest to lowest percentage.
+SELECT c.bidder_name, A.BIDDER_ID,NO_OF_BIDS,COUNT(A.BID_STATUS) as total_number_bids_won, A.BID_STATUS, #counting the status of bids
+(COUNT(A.BID_STATUS)/NO_OF_BIDS)*100 AS PERCENTAGE_WIN  #calculating %age of winning bids
+FROM IPL_BIDDING_DETAILS A
+INNER JOIN IPL_BIDDER_POINTS B
+ON A.BIDDER_ID = B.BIDDER_ID
+AND A.BID_STATUS ='Won'
+join
+ipl_bidder_details c
+on
+a.bidder_id = c.bidder_id
+GROUP BY A.BIDDER_ID, NO_OF_BIDS
+ORDER BY PERCENTAGE_WIN DESC;
+
+
+#2.	Display the number of matches conducted at each stadium with stadium name, city from the database.
+
+select * from ipl_stadium;
+select * from ipl_match_schedule;
+
+SELECT A.STADIUM_ID,A.STADIUM_NAME,A.CITY,
+COUNT(B.STADIUM_ID) AS MATCHES_IN_EACH_STADIUM 
+FROM IPL_STADIUM A
+LEFT JOIN IPL_MATCH_SCHEDULE B
+ON A.STADIUM_ID = B.STADIUM_ID
+GROUP BY A.STADIUM_ID;
+
+#3.	In a given stadium, what is the percentage of wins by a team which has won the toss?
+SELECT * FROM IPL_MATCH;
+select * FROM IPL_MATCH_SCHEDULE;
+SELECT * FROM IPL_STADIUM;
+
+SELECT A.STADIUM_ID,A.STADIUM_NAME,CITY,
+(SELECT COUNT(*) 
+FROM IPL_MATCH B 
+JOIN IPL_MATCH_SCHEDULE C
+ON B.MATCH_ID = C.MATCH_ID
+WHERE B.TOSS_WINNER = B.MATCH_WINNER
+AND C.STADIUM_ID=A.STADIUM_ID)
+/
+(SELECT COUNT(*) 
+FROM IPL_MATCH_SCHEDULE C
+WHERE C.STADIUM_ID = A.STADIUM_ID)
+* 100 AS 'WIN_%'
+FROM IPL_STADIUM A;
+
+#4.	Show the total bids along with bid team and team name.
+SELECT A.BID_TEAM,B.TEAM_NAME,
+COUNT(A.BID_TEAM) AS TOTAL_BIDS
+FROM IPL_BIDDING_DETAILS A
+JOIN IPL_TEAM B
+ON A.BID_TEAM = B.TEAM_ID
+GROUP BY A.BID_TEAM
+ORDER BY A.BID_TEAM;
+######################
+SELECT A.BID_TEAM,B.TEAM_NAME,
+COUNT(A.BID_TEAM) AS TOTAL_BIDS,
+DENSE_RANK() OVER( order by a.bid_team) as rank_123 
+FROM IPL_BIDDING_DETAILS A
+JOIN IPL_TEAM B
+ON A.BID_TEAM = B.TEAM_ID
+GROUP BY A.BID_TEAM;
+#5.	Show the team id who won the match as per the win details.
+#solv1
+
+select * from IPL_TEAM;
+select * from IPL_MATCH;
+
+SELECT TEAM_ID, TEAM_NAME, TEAM_ID1, TEAM_ID2, MATCH_WINNER,IPL_MATCH.WIN_DETAILS
+FROM IPL_TEAM
+INNER JOIN IPL_MATCH
+ON SUBSTR(IPL_TEAM.REMARKS,1,3) = SUBSTR(IPL_MATCH.WIN_DETAILS,6,3);
+
+
+#6.	Display total matches played, total matches won and total matches lost by team along with its team name.
+select * FROM IPL_TEAM_STANDING;
+select * FROM IPL_TEAM;
+
+SELECT A.TEAM_ID,B.TEAM_NAME,
+SUM(A.MATCHES_PLAYED) AS TOTAL_MATCHES_PLAYED,
+SUM(A.MATCHES_WON) AS WON,
+SUM(A.MATCHES_LOST) AS LOST 
+FROM IPL_TEAM_STANDINGS A
+JOIN IPL_TEAM B
+ON A.TEAM_ID = B.TEAM_ID
+GROUP BY A.TEAM_ID;
+
+#####
+SELECT IPL_TEAM_STANDINGS.TEAM_ID,IPL_TEAM.TEAM_NAME,
+SUM(IPL_TEAM_STANDINGS.MATCHES_PLAYED) AS TOTAL_MATCH_PLAYED,
+SUM(IPL_TEAM_STANDINGS.MATCHES_WON) AS WON_MATCHES,
+SUM(IPL_TEAM_STANDINGS.MATCHES_LOST) AS LOST_MATCHES
+FROM IPL_TEAM_STANDINGS
+INNER JOIN IPL_TEAM
+ON IPL_TEAM_STANDINGS.TEAM_ID=IPL_TEAM.TEAM_ID
+GROUP BY IPL_TEAM_STANDINGS.TEAM_ID;
+
+#7.	Display the bowlers for Mumbai Indians team.
+
+SELECT * FROM IPL_TEAM_PLAYERS ;
+SELECT * FROM IPL_PLAYER;
+SELECT * FROM IPL_TEAM;
+
+SELECT PLAYER_ID, TEAM_ID                
+FROM IPL_TEAM_PLAYERS
+WHERE PLAYER_ROLE = 'BOWLER';
+
+SELECT PLAYER_ID, PLAYER_NAME
+FROM  IPL_PLAYER;
+
+SELECT TEAM_ID, TEAM_NAME
+FROM  IPL_TEAM
+WHERE TEAM_NAME = 'Mumbai Indians';
+
+SELECT A.PLAYER_ID,B.PLAYER_NAME,A.PLAYER_ROLE,C.TEAM_NAME
+FROM IPL_TEAM_PLAYERS A
+JOIN IPL_PLAYER B 
+ON A.PLAYER_ID = B.PLAYER_ID 
+JOIN IPL_TEAM C
+ON A.TEAM_ID = C.TEAM_ID 
+WHERE A.PLAYER_ROLE = 'BOWLER' 
+and C.TEAM_NAME='Mumbai Indians';
+
+#8.	How many all-rounders are there in each team, Display the teams with more than 4 all-rounder in descending order.
+
+SELECT * FROM IPL_TEAM_PLAYERS;
+SELECT * FROM IPL_PLAYER;
+SELECT * FROM IPL_TEAM;
+
+SELECT PLAYER_ROLE,
+COUNT(PLAYER_ROLE) AS COUNT                  #ASKED FOR NUMBER OF OF ALL-ROUNDERS 
+FROM IPL_TEAM_PLAYERS
+GROUP BY PLAYER_ROLE
+HAVING PLAYER_ROLE LIKE '%All-Rounder%';
+
+SELECT TEAM_NAME,TEAM_ID
+FROM IPL_TEAM
+WHERE TEAM_NAME LIKE '%Mumbai Indians%'
+GROUP BY team_name;
+
+SELECT C.TEAM_NAME,A.PLAYER_ROLE,
+COUNT(A.PLAYER_ROLE) AS COUNT
+FROM IPL_TEAM_PLAYERS A
+JOIN IPL_PLAYER B 
+ON A.PLAYER_ID=B.PLAYER_ID 
+JOIN IPL_TEAM C
+ON A.TEAM_ID=C.TEAM_ID 
+WHERE A.PLAYER_ROLE = 'ALL-ROUNDER' 
+GROUP BY C.TEAM_NAME 
+HAVING COUNT > 4 
+ORDER BY COUNT(A.PLAYER_ROLE) DESC;
